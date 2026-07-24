@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Meme Machine</title>
+<style>
+  :root {
+    --bg1: #ff6b6b;
+    --bg2: #4ecdc4;
+    --accent: #ffe66d;
+    --dark: #1a1a2e;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(135deg, var(--bg1), var(--bg2));
+    min-height: 100vh;
+    padding: 24px;
+    color: var(--dark);
+  }
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+  }
+  header {
+    text-align: center;
+    color: white;
+    margin-bottom: 24px;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.15);
+  }
+  header h1 {
+    font-size: 2.4rem;
+    margin: 0 0 6px;
+  }
+  header p {
+    margin: 0;
+    opacity: 0.9;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .drop-zone {
+    border: 3px dashed #ccc;
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+    background: #fafafa;
+  }
+  .drop-zone.dragover {
+    border-color: var(--bg2);
+    background: #eefdfc;
+  }
+  .drop-zone p { margin: 8px 0 0; color: #777; }
+  #fileInput { display: none; }
+  .canvas-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+  }
+  canvas {
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+    background: #eee;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 10px;
+  }
+  .controls .full { grid-column: 1 / -1; }
+  label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+    color: #555;
+  }
+  input[type="text"], input[type="range"] {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 1rem;
+  }
+  .btn {
+    border: none;
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--dark);
+    color: var(--accent);
+  }
+  .btn-ai {
+    background: linear-gradient(135deg, #a18cd1, #fbc2eb);
+    color: #2b0a3d;
+  }
+  .btn-download {
+    background: linear-gradient(135deg, #43e97b, #38f9d7);
+    color: #0a2e1c;
+  }
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+  .status {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: #777;
+    min-height: 20px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: var(--accent);
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-left: 6px;
+  }
+  footer {
+    text-align: center;
+    color: white;
+    opacity: 0.8;
+    font-size: 0.8rem;
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>🎭 AI Meme Machine</h1>
+      <p>Upload a photo, let Azure AI caption it, then meme-ify it.</p>
+    </header>
+
+    <div class="card">
+      <div class="drop-zone" id="dropZone">
+        <div style="font-size: 2rem;">📤</div>
+        <p><strong>Click to upload</strong> or drag an image here</p>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" />
+
+      <div class="canvas-wrap">
+        <canvas id="canvas" width="600" height="600"></canvas>
+      </div>
+
+      <div class="controls">
+        <div class="full">
+          <label for="topText">Top Text</label>
+          <input type="text" id="topText" placeholder="TOP TEXT" />
+        </div>
+        <div class="full">
+          <label for="bottomText">Bottom Text</label>
+          <input type="text" id="bottomText" placeholder="BOTTOM TEXT" />
+        </div>
+        <div>
+          <label for="fontSize">Font Size (<span id="fontSizeVal">42</span>px)</label>
+          <input type="range" id="fontSize" min="20" max="80" value="42" />
+        </div>
+        <div>
+          <label for="textColor">Text Color</label>
+          <input type="text" id="textColor" value="#ffffff" style="padding:6px;" />
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ai" id="aiCaptionBtn">✨ AI Caption Me</button>
+        <button class="btn btn-primary" id="renderBtn">🖼️ Render Meme</button>
+        <button class="btn btn-download" id="downloadBtn">⬇️ Download</button>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+
+    <footer id="footerNote">Built with Azure App Service + Azure Computer Vision · just for fun 🎉</footer>
+  </div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const topTextEl = document.getElementById('topText');
+const bottomTextEl = document.getElementById('bottomText');
+const fontSizeEl = document.getElementById('fontSize');
+const fontSizeVal = document.getElementById('fontSizeVal');
+const textColorEl = document.getElementById('textColor');
+const statusEl = document.getElementById('status');
+const aiCaptionBtn = document.getElementById('aiCaptionBtn');
+const renderBtn = document.getElementById('renderBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+
+let currentImage = null;
+let currentFile = null;
+let currentImageDataUrl = null;
+
+function setStatus(msg) {
+  statusEl.textContent = msg;
+}
+
+function loadImageFile(file) {
+  currentFile = file;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    currentImageDataUrl = e.target.result;
+    const img = new Image();
+    img.onload = () => {
+      currentImage = img;
+      // Fit canvas to image aspect ratio, capped for reasonable size
+      const maxDim = 700;
+      let w = img.width, h = img.height;
+      const scale = Math.min(maxDim / w, maxDim / h, 1);
+      canvas.width = w * scale;
+      canvas.height = h * scale;
+      drawMeme();
+      setStatus('Image loaded. Add text or hit "AI Caption Me".');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files && e.target.files[0]) loadImageFile(e.target.files[0]);
+});
+['dragenter', 'dragover'].forEach(evt => {
+  dropZone.addEventListener(evt, (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+});
+['dragleave', 'drop'].forEach(evt => {
+  dropZone.addEventListener(evt, (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+  });
+});
+dropZone.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files[0];
+  if (file) loadImageFile(file);
+});
+
+fontSizeEl.addEventListener('input', () => {
+  fontSizeVal.textContent = fontSizeEl.value;
+});
+
+function wrapText(text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const test = line ? line + ' ' + word : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function drawMeme() {
+  if (!currentImage) {
+    ctx.fillStyle = '#eee';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#999';
+    ctx.font = '18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Upload an image to get started', canvas.width / 2, canvas.height / 2);
+    return;
+  }
+  ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+
+  const fontSize = parseInt(fontSizeEl.value, 10);
+  const color = textColorEl.value || '#ffffff';
+  ctx.font = `bold ${fontSize}px Impact, 'Arial Black', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = color;
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = Math.max(2, fontSize / 12);
+  ctx.lineJoin = 'round';
+
+  const maxWidth = canvas.width * 0.9;
+
+  const top = topTextEl.value.toUpperCase();
+  if (top) {
+    const lines = wrapText(top, maxWidth);
+    lines.forEach((line, i) => {
+      const y = fontSize + i * (fontSize + 6) + 10;
+      ctx.strokeText(line, canvas.width / 2, y);
+      ctx.fillText(line, canvas.width / 2, y);
+    });
+  }
+
+  const bottom = bottomTextEl.value.toUpperCase();
+  if (bottom) {
+    const lines = wrapText(bottom, maxWidth);
+    const totalHeight = lines.length * (fontSize + 6);
+    lines.forEach((line, i) => {
+      const y = canvas.height - totalHeight + i * (fontSize + 6) + fontSize - 10;
+      ctx.strokeText(line, canvas.width / 2, y);
+      ctx.fillText(line, canvas.width / 2, y);
+    });
+  }
+}
+
+renderBtn.addEventListener('click', drawMeme);
+[topTextEl, bottomTextEl, fontSizeEl, textColorEl].forEach(el => {
+  el.addEventListener('input', drawMeme);
+});
+
+aiCaptionBtn.addEventListener('click', async () => {
+  if (!currentFile) {
+    setStatus('Upload an image first!');
+    return;
+  }
+  setStatus('Asking Azure AI to look at your image... 🤔');
+  aiCaptionBtn.disabled = true;
+  try {
+    const res = await fetch('/api/caption', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: currentImageDataUrl })
+    });
+    const data = await res.json();
+    if (data.caption) {
+      bottomTextEl.value = data.caption;
+      drawMeme();
+      const sourceLabel = data.source === 'azure-computer-vision' ? 'Azure Computer Vision' : 'offline fallback joke bank';
+      setStatus(`Caption suggested by ${sourceLabel}. Feel free to edit it!`);
+    } else {
+      setStatus('Hmm, no caption came back. Try again?');
+    }
+  } catch (err) {
+    console.error(err);
+    setStatus('Something went wrong talking to the caption service.');
+  } finally {
+    aiCaptionBtn.disabled = false;
+  }
+});
+
+downloadBtn.addEventListener('click', () => {
+  drawMeme();
+  const link = document.createElement('a');
+  link.download = 'meme.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+
+drawMeme();
+
+fetch('/api/health').then(r => r.json()).then(d => {
+  if (!d.azureConfigured) {
+    document.getElementById('footerNote').textContent =
+      'Running in offline demo mode (no Azure Computer Vision key set yet) — captions come from a local joke bank.';
+  }
+}).catch(() => {});
+</script>
+</body>
+</html>

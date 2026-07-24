@@ -1,0 +1,9 @@
+{
+  "name": "meme-api",
+  "version": "1.0.0",
+  "description": "Serverless API for the AI Meme Machine, deployed as a Static Web Apps managed Functions app.",
+  "main": "host.json",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
