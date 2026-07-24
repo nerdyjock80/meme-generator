@@ -21,7 +21,7 @@ module.exports = async function (context, req) {
   const imageBase64 = req.body && req.body.imageBase64;
 
   if (!imageBase64) {
-    context.res = { status: 400, jsonBody: { error: "No image provided" } };
+    context.res = { status: 400, body: { error: "No image provided" } };
     return;
   }
 
@@ -30,7 +30,7 @@ module.exports = async function (context, req) {
 
   // No Azure Computer Vision configured yet -> offline demo mode.
   if (!endpoint || !key) {
-    context.res = { status: 200, jsonBody: { caption: randomFallback(), source: "fallback" } };
+    context.res = { status: 200, body: { caption: randomFallback(), source: "fallback" } };
     return;
   }
 
@@ -53,7 +53,7 @@ module.exports = async function (context, req) {
       context.log.error("Azure Computer Vision error:", azureRes.status, text);
       context.res = {
         status: 200,
-        jsonBody: { caption: randomFallback(), source: "fallback", note: "Azure call failed, used fallback" }
+        body: { caption: randomFallback(), source: "fallback", note: "Azure call failed, used fallback" }
       };
       return;
     }
@@ -63,7 +63,7 @@ module.exports = async function (context, req) {
 
     context.res = {
       status: 200,
-      jsonBody: {
+      body: {
         caption,
         source: "azure-computer-vision",
         confidence: data && data.captionResult && data.captionResult.confidence
@@ -73,7 +73,7 @@ module.exports = async function (context, req) {
     context.log.error("Caption error:", err);
     context.res = {
       status: 200,
-      jsonBody: { caption: randomFallback(), source: "fallback", note: "Exception, used fallback" }
+      body: { caption: randomFallback(), source: "fallback", note: "Exception, used fallback" }
     };
   }
 };
